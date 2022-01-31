@@ -1,59 +1,44 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Product } from './products.model';
+import { InjectModel } from '@nestjs/mongoose';
+
+import { Product } from './schemas/products.schema';
+import { ProductRepository } from './products.repository';
+import { ProductUpdate } from './dto/updateProduct.dto';
 
 @Injectable()
 export class ProductsService {
-  private products: Product[] = [];
+  constructor(
+    @InjectModel(Product.name)
+    private readonly productRepository: ProductRepository,
+  ) {}
 
-  private findProduct(id: string): [Product, number] {
-    const productIndex = this.products.findIndex(
-      (product) => product.id === id,
-    );
-    const product = this.products[productIndex];
-    if (!product) {
-      throw new NotFoundException(`Could not find product for the id ${id}`);
-    }
-    return [product, productIndex];
+  async getProductById(id: string): Promise<Product> {
+    return this.productRepository.findOne({ _id: id });
   }
 
-  insertProduct(
+  async getProducts(): Promise<Product[]> {
+    return this.productRepository.find({});
+  }
+
+  async createProduct(
     title: string,
-    description: string,
     price: number,
-    imageUrl?: string,
-  ): string {
-    const prodId = Math.random().toString();
-    const product = new Product(prodId, title, description, price, imageUrl);
-    this.products.push(product);
-    return prodId;
+    desc?: string,
+    imUrl?: string,
+  ): Promise<Product> {
+    return this.productRepository.create({
+      title,
+      description: desc ? desc : '',
+      price,
+      imageUrl: imUrl ? imUrl : '',
+    });
   }
 
-  getProducts(): Product[] {
-    return [...this.products.map((elem) => ({ ...elem }))];
+  async updateProduct(id: string, update: ProductUpdate): Promise<Product> {
+    return this.productRepository.findOneAndUpdate({ id }, update);
   }
 
-  getProduct(id: string): Product {
-    const [product, _] = this.findProduct(id);
-    return { ...product };
-  }
-
-  updateProduct(id: string, title: string, description: string, price: number) {
-    const [product, idx] = this.findProduct(id);
-    const updatedProduct = { ...product };
-    if (title) {
-      updatedProduct.title = title;
-    }
-    if (description) {
-      updatedProduct.description = description;
-    }
-    if (price) {
-      updatedProduct.price = price;
-    }
-    this.products[idx] = updatedProduct;
-  }
-
-  deleteProduct(id: string) {
-    const [_, idx] = this.findProduct(id);
-    this.products.splice(idx, 1);
+  async deleteProduct(id: string) {
+    return this.productRepository.findOneAndDelete({ _id: id });
   }
 }

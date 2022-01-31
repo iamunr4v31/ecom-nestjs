@@ -1,51 +1,49 @@
-import { Controller, Post, Body, Get, Param, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Param,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { Product } from './products.model';
+import { Product } from './schemas/products.schema';
+import { ProductCreate } from './dto/createProduct.dto';
+import { ProductUpdate } from './dto/updateProduct.dto';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  addProduct(
-    @Body('title') prodTitle: string,
-    @Body('description') prodDesc: string,
-    @Body('price') prodPrice: number,
-    @Body('image') prodImage?: string,
-  ): { id: string } {
-    const resId = this.productsService.insertProduct(
-      prodTitle,
-      prodDesc,
-      prodPrice,
-      prodImage,
+  addProduct(@Body() productCreate: ProductCreate): Promise<Product> {
+    return this.productsService.createProduct(
+      productCreate.title,
+      productCreate.price,
     );
-    return { id: resId };
   }
 
   @Get()
-  getAllProducts(): { products: Product[] } {
-    return { products: this.productsService.getProducts() };
+  getAllProducts(): Promise<Product[]> {
+    return this.productsService.getProducts();
   }
 
   @Get(':id')
-  getProduct(@Param('id') prodId: string): Product {
-    return this.productsService.getProduct(prodId);
+  getProduct(@Param('id') id: string): Promise<Product> {
+    return this.productsService.getProductById(id);
   }
 
   @Patch(':id')
   updateProduct(
     @Param('id') id: string,
-    @Body('title') title: string,
-    @Body('price') price: number,
-    @Body('description') desc: string,
-  ): {status: string} {
-    this.productsService.updateProduct(id, title, desc, price);
-    return { status: 'Updated successfully' };
+    productUpdate: ProductUpdate,
+  ): Promise<Product> {
+    return this.productsService.updateProduct(id, productUpdate);
   }
 
   @Delete(':id')
-  removeProduct(@Param('id') id: string): {status: string} {
-    this.productsService.deleteProduct(id);
-    return { status: 'Updated successfully' };
+  deleteProduct(@Param('id') id: string): Promise<Product> {
+    return this.productsService.deleteProduct(id);
   }
 }
